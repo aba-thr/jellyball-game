@@ -1,0 +1,12 @@
+{
+  "background_color": "#0d1117",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Jelly Precision Merge",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "Jelly Game",
+  "start_url": "/jellyball-game/",
+  "theme_color": "#0d1117",
+  "description": "لعبة دمج الكرات الهلامية الإدمانية"
+}
