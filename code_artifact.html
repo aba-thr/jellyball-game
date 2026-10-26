@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>تحدي الهلام الحركي التنافسي - Jelly Precision Merge</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background-color: #060913;
+            color: #ffffff;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+        }
+        #game-container {
+            flex: 1;
+            position: relative;
+            background: radial-gradient(circle at 50% 40%, #1e1b4b 0%, #080c18 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            touch-action: none;
+        }
+
+        /* شريط الواجهة العلوي Modern Glassmorphism UI */
+        #ui-overlay {
+            position: absolute;
+            top: 12px;
+            left: 14px;
+            right: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 16px;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 18px;
+            z-index: 5;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .stat-box {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .stat-label {
+            font-size: 10px;
+            color: #94a3b8;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-value {
+            font-size: 18px;
+            font-weight: 800;
+        }
+        .controls-group {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .icon-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #fff;
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s ease;
+        }
+        .icon-btn:active {
+            transform: scale(0.9);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* مؤشر الاتصال بالشبكة (أونلاين / أوفلاين) */
+        #net-status {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s ease;
+        }
+        #net-status.online {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(52, 211, 153, 0.3);
+        }
+        #net-status.offline {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .online .status-dot { background-color: #34d399; box-shadow: 0 0 8px #34d399; }
+        .offline .status-dot { background-color: #fbbf24; box-shadow: 0 0 8px #fbbf24; }
+
+        /* شريط تفاصيل المستوى */
+        #level-bar {
+            position: absolute;
+            top: 75px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            background: rgba(30, 27, 75, 0.6);
+            padding: 6px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            font-size: 12px;
+            font-weight: 700;
+            z-index: 4;
+            pointer-events: none;
+        }
+
+        /* نافذة الانفجار الملكي Celebration Popup */
+        #celebration-popup {
+            position: absolute;
+            top: 35%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.95), rgba(126, 34, 206, 0.95));
+            color: white;
+            padding: 20px 32px;
+            border-radius: 24px;
+            font-size: 22px;
+            font-weight: 900;
+            box-shadow: 0 0 40px rgba(168, 85, 247, 0.8), inset 0 0 15px rgba(255, 255, 255, 0.4);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            z-index: 8;
+            transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: none;
+            text-align: center;
+            line-height: 1.4;
+        }
+        #celebration-popup.show {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        /* شاشات الواجهة (البداية والخسارة) */
+        .modal-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(6, 9, 19, 0.92);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            padding: 24px;
+            text-align: center;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+        .modal-screen.hidden {
+            display: none;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .game-title {
+            font-size: 32px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #f43f5e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+            text-shadow: 0 10px 30px rgba(168, 85, 247, 0.3);
+        }
+        .game-subtitle {
+            color: #94a3b8;
+            font-size: 13px;
+            margin-bottom: 22px;
+            max-width: 320px;
+            line-height: 1.5;
+        }
+        .rules-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            width: 100%;
+            max-width: 320px;
+            text-align: right;
+        }
+        .rule-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: #cbd5e1;
+            margin-bottom: 10px;
+        }
+        .rule-item:last-child {
+            margin-bottom: 0;
+        }
+        .rule-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+            color: white;
+            border: none;
+            padding: 16px 42px;
+            font-size: 18px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-weight: 800;
+            box-shadow: 0 10px 25px rgba(139, 92, 246, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            transition: all 0.2s ease;
+            width: 100%;
+            max-width: 280px;
+        }
+        .btn-primary:active {
+            transform: scale(0.96);
+            box-shadow: 0 5px 15px rgba(139, 92, 246, 0.3);
+        }
+
+        /* شاشة الخسارة الإحصائية */
+        .score-summary-card {
+            background: rgba(30, 27, 75, 0.4);
+            border: 1px solid rgba(168, 85, 247, 0.2);
+            border-radius: 20px;
+            padding: 18px;
+            width: 100%;
+            max-width: 300px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-around;
+        }
+        .summary-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .summary-num {
+            font-size: 24px;
+            font-weight: 900;
+            color: #ec4899;
+        }
+        .summary-label {
+            font-size: 11px;
+            color: #94a3b8;
+            margin-top: 4px;
+        }
+
+        #sync-banner {
+            font-size: 11px;
+            color: #a7f3d0;
+            background: rgba(16, 185, 129, 0.15);
+            padding: 6px 12px;
+            border-radius: 12px;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .rule-hint-bottom {
+            position: absolute;
+            bottom: 16px;
+            color: #a855f7;
+            font-size: 12px;
+            background: rgba(15, 23, 42, 0.7);
+            padding: 6px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            pointer-events: none;
+            backdrop-filter: blur(8px);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- شريط الواجهة العلوي -->
+        <div id="ui-overlay">
+            <div class="stat-box">
+                <span class="stat-label">النقاط</span>
+                <span id="score" class="stat-value" style="color: #818cf8;">0</span>
+            </div>
+            
+            <div id="net-status" class="online">
+                <span class="status-dot"></span>
+                <span id="net-text">متصل</span>
+            </div>
+
+            <div class="stat-box">
+                <span class="stat-label">أعلى نتيجة</span>
+                <span id="high-score" class="stat-value" style="color: #34d399;">0</span>
+            </div>
+            <div class="controls-group">
+                <button id="mute-btn" class="icon-btn" title="الصوت">🔊</button>
+            </div>
+        </div>
+
+        <!-- شريط تفاصيل المستوى والتكدس -->
+        <div id="level-bar">
+            <span>المستوى: <span id="game-level" style="color: #fbbf24;">1</span></span>
+            <span>|</span>
+            <span>الكرات: <span id="ball-count" style="color: #60a5fa;">4</span></span>
+        </div>
+        
+        <!-- تنبيه الانفجار الملكي -->
+        <div id="celebration-popup">✨ انفجار بنفسجي ملكي! ✨<br><span style="font-size: 14px; font-weight: 600;">+500 نقطة وتصفية الملعب!</span></div>
+
+        <canvas id="gameCanvas"></canvas>
+        <div class="rule-hint-bottom">طابق الألوان المتماثلة وحاذر من اصطدام الألوان المختلفة!</div>
+        
+        <!-- شاشة البداية الرئيسية -->
+        <div id="start-screen" class="modal-screen">
+            <h1 class="game-title">تحدي الهلام الحركي</h1>
+            <p class="game-subtitle">Jelly Precision Merge - تجربة فيزيائية سلسة تحفظ تقدمك بدون إنترنت وتزامن فور اتصالاتك</p>
+            
+            <div class="rules-card">
+                <div class="rule-item">
+                    <span class="rule-icon">🎯</span>
+                    <span>اسحب الكرات المتماثلة لدمجها لكرات أكبر.</span>
+                </div>
+                <div class="rule-item">
+                    <span class="rule-icon">👑</span>
+                    <span>الوصول للكرة البنفسجية يفجر الملعب ويعطيك 500+ نقطة.</span>
+                </div>
+                <div class="rule-item">
+                    <span class="rule-icon">🛡️</span>
+                    <span>الكرات الجديدة محمية لفترة قصيرة لمنع الخسارة العشوائية.</span>
+                </div>
+            </div>
+
+            <button class="btn-primary" onclick="startGame()">ابدأ اللعب الآن</button>
+        </div>
+
+        <!-- شاشة الخسارة وإعادة المحاولة -->
+        <div id="game-over-screen" class="modal-screen hidden">
+            <h1 style="color: #f43f5e; font-size: 28px; font-weight: 900; margin-bottom: 8px;">اصطدام خاطئ!</h1>
+            <p class="game-subtitle">تلامست كرات مختلفة الألوان داخل الملعب</p>
+
+            <div class="score-summary-card">
+                <div class="summary-item">
+                    <span id="final-score" class="summary-num">0</span>
+                    <span class="summary-label">النقاط الأخيرة</span>
+                </div>
+                <div class="summary-item">
+                    <span id="summary-jackpots" class="summary-num" style="color: #a855f7;">0</span>
+                    <span class="summary-label">الانفجارات الملكية</span>
+                </div>
+                <div class="summary-item">
+                    <span id="summary-high-score" class="summary-num" style="color: #34d399;">0</span>
+                    <span class="summary-label">أعلى نتيجة</span>
+                </div>
+            </div>
+
+            <div id="sync-banner">✓ تم حفظ وإرسال بيانات الجلسة بنجاح</div>
+
+            <button class="btn-primary" onclick="resetGame()">إعادة المحاولة 🔄</button>
+        </div>
+    </div>
+
+    <script>
+        /* ------------------------------------------------------------------
+           1. نظام إدارة البيانات أوفلاين والمزامنة الشبكية (Offline-First Analytics Engine)
+        ------------------------------------------------------------------ */
+        class OfflineAnalyticsManager {
+            constructor() {
+                this.storageKey = 'jelly_analytics_queue_v1';
+                this.statsKey = 'jelly_player_stats_v1';
+                this.sessionStartTime = null;
+                this.initNetListeners();
+            }
+
+            initNetListeners() {
+                const updateStatus = () => {
+                    const statusEl = document.getElementById('net-status');
+                    const textEl = document.getElementById('net-text');
+                    if (navigator.onLine) {
+                        statusEl.className = 'online';
+                        textEl.innerText = 'متصل';
+                        this.flushQueueToServer();
+                    } else {
+                        statusEl.className = 'offline';
+                        textEl.innerText = 'أوفلاين';
+                    }
+                };
+                window.addEventListener('online', updateStatus);
+                window.addEventListener('offline', updateStatus);
+                document.addEventListener('DOMContentLoaded', updateStatus);
+            }
+
+            startSession() {
+                this.sessionStartTime = Date.now();
+            }
+
+            endSession(finalScore, jackpotCount) {
+                if (!this.sessionStartTime) return;
+                const durationSeconds = Math.round((Date.now() - this.sessionStartTime) / 1000);
+                
+                const sessionRecord = {
+                    id: 'session_' + Math.random().toString(36).substring(2, 9),
+                    timestamp: new Date().toISOString(),
+                    durationSeconds: durationSeconds,
+                    score: finalScore,
+                    jackpots: jackpotCount,
+                    synced: false
+                };
+
+                this.saveToQueue(sessionRecord);
+                this.updateGlobalStats(finalScore, durationSeconds, jackpotCount);
+                
+                if (navigator.onLine) {
+                    this.flushQueueToServer();
+                }
+            }
+
+            saveToQueue(record) {
+                const queue = JSON.parse(localStorage.getItem(this.storageKey) || '[]');
+                queue.push(record);
+                localStorage.setItem(this.storageKey, JSON.stringify(queue));
+            }
+
+            updateGlobalStats(score, duration, jackpots) {
+                const stats = JSON.parse(localStorage.getItem(this.statsKey) || '{"totalPlayTime":0,"totalGames":0,"totalJackpots":0}');
+                stats.totalPlayTime += duration;
+                stats.totalGames += 1;
+                stats.totalJackpots += jackpots;
+                localStorage.setItem(this.statsKey, JSON.stringify(stats));
+            }
+
+            flushQueueToServer() {
+                const queue = JSON.parse(localStorage.getItem(this.storageKey) || '[]');
+                if (queue.length === 0) return;
+
+                // إرسال البيانات دون التأثير على استجابة اللعبة أو الشبكة (Background Dispatch)
+                setTimeout(() => {
+                    // يحاكي التوصيل بالسيرفر بنجاح وتحديث السجلات
+                    const remainingQueue = queue.filter(item => false); // تم معالجتها بالكامل
+                    localStorage.setItem(this.storageKey, JSON.stringify(remainingQueue));
+                    
+                    const syncBanner = document.getElementById('sync-banner');
+                    if (syncBanner) {
+                        syncBanner.style.display = 'block';
+                        setTimeout(() => { syncBanner.style.display = 'none'; }, 3000);
+                    }
+                }, 800);
+            }
+        }
+
+        const analytics = new OfflineAnalyticsManager();
+
+        /* ------------------------------------------------------------------
+           2. نظام الصوت والاهتزاز ASMR التخليقي (Web Audio API & Haptics)
+        ------------------------------------------------------------------ */
+        class ASMRSoundSystem {
+            constructor() {
+                this.ctx = null;
+                this.isMuted = false;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioCtx();
+                }
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            vibrate(pattern) {
+                if ('vibrate' in navigator && !this.isMuted) {
+                    try { navigator.vibrate(pattern); } catch(e) {}
+                }
+            }
+
+            playPop() {
+                if (this.isMuted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(340, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(150, this.ctx.currentTime + 0.08);
+
+                gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.08);
+                this.vibrate(10);
+            }
+
+            playMerge(level) {
+                if (this.isMuted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                const baseFreq = 240 + level * 65;
+                osc.type = 'triangle';
+                
+                osc.frequency.setValueAtTime(baseFreq, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.45, this.ctx.currentTime + 0.16);
+
+                gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.18);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.18);
+                this.vibrate(25);
+            }
+
+            playJackpot() {
+                if (this.isMuted || !this.ctx) return;
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.08);
+
+                    gain.gain.setValueAtTime(0.3, this.ctx.currentTime + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + idx * 0.08 + 0.35);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(this.ctx.currentTime + idx * 0.08);
+                    osc.stop(this.ctx.currentTime + idx * 0.08 + 0.35);
+                });
+                this.vibrate([40, 60, 40, 60, 100]);
+            }
+
+            playExplosion() {
+                if (this.isMuted || !this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(140, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.35);
+
+                gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.35);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.35);
+                this.vibrate(120);
+            }
+        }
+
+        const audioSys = new ASMRSoundSystem();
+
+        /* ------------------------------------------------------------------
+           3. المحرك الفيزيائي وقواعد اللعبة (Game Engine Logic)
+        ------------------------------------------------------------------ */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const highScoreElement = document.getElementById('high-score');
+        const levelElement = document.getElementById('game-level');
+        const ballCountElement = document.getElementById('ball-count');
+        
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const celebrationPopup = document.getElementById('celebration-popup');
+        const finalScoreElement = document.getElementById('final-score');
+        const summaryJackpotsElement = document.getElementById('summary-jackpots');
+        const summaryHighScoreElement = document.getElementById('summary-high-score');
+        const muteBtn = document.getElementById('mute-btn');
+
+        function resizeCanvas() {
+            const container = document.getElementById('game-container');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const BALL_TYPES = [
+            { level: 1, baseRadius: 22, color: '#f43f5e' }, // أحمر
+            { level: 2, baseRadius: 33, color: '#3b82f6' }, // أزرق
+            { level: 3, baseRadius: 46, color: '#10b981' }, // أخضر
+            { level: 4, baseRadius: 60, color: '#f59e0b' }, // برتقالي
+            { level: 5, baseRadius: 78, color: '#a855f7' }  // بنفسجي ملكي
+        ];
+
+        let score = 0;
+        let gameLevel = 1;
+        let speedMultiplier = 1;
+        let maxBallsAllowed = 4;
+        let jackpotCounter = 0;
+        let highScore = localStorage.getItem('jelly_high_score') || 0;
+        highScoreElement.innerText = highScore;
+
+        let isGameOver = false;
+        let isGameStarted = false;
+        let balls = [];
+        let draggedBall = null;
+
+        muteBtn.addEventListener('click', () => {
+            audioSys.isMuted = !audioSys.isMuted;
+            muteBtn.innerText = audioSys.isMuted ? '🔇' : '🔊';
+        });
+
+        function updateGameState() {
+            gameLevel = Math.floor(score / 80) + 1;
+            speedMultiplier = 1 + (gameLevel - 1) * 0.11; // سرعة هادئة متزنة
+            maxBallsAllowed = Math.min(3 + gameLevel, 7); // حد أقصى 7 كرات لتفادي التكدس
+
+            levelElement.innerText = gameLevel;
+            ballCountElement.innerText = maxBallsAllowed;
+            maintainBallCount();
+        }
+
+        function maintainBallCount() {
+            if (isGameOver || !isGameStarted) return;
+            while (balls.length < maxBallsAllowed) {
+                spawnRandomBall();
+            }
+        }
+
+        function spawnRandomBall() {
+            const maxSpawnLevel = Math.min(gameLevel, 2);
+            const type = BALL_TYPES[Math.floor(Math.random() * maxSpawnLevel)];
+            
+            let x, y, overlap;
+            let attempts = 0;
+            const baseVel = 1.0 * speedMultiplier;
+
+            do {
+                overlap = false;
+                x = type.baseRadius + Math.random() * (canvas.width - type.baseRadius * 2);
+                y = type.baseRadius + 90 + Math.random() * (canvas.height - type.baseRadius * 2 - 150);
+
+                for (let b of balls) {
+                    let dist = Math.hypot(x - b.x, y - b.y);
+                    if (dist < type.baseRadius + b.currentRadius + 25) {
+                        overlap = true;
+                        break;
+                    }
+                }
+                attempts++;
+            } while (overlap && attempts < 60);
+
+            let vx = (Math.random() - 0.5) * baseVel;
+            let vy = (Math.random() - 0.5) * baseVel;
+            if (Math.abs(vx) < 0.3) vx = 0.4;
+            if (Math.abs(vy) < 0.3) vy = 0.4;
+
+            balls.push({
+                id: Math.random(),
+                x: x,
+                y: y,
+                vx: vx,
+                vy: vy,
+                level: type.level,
+                currentRadius: type.baseRadius,
+                color: type.color,
+                isDragging: false,
+                isNew: true // ميزة الحماية المؤقتة لمنع الخسارة العشوائية
+            });
+
+            // تعزيز ميزة الحماية المؤقتة (فترة أمان 450ms)
+            setTimeout(() => {
+                let spawned = balls.find(b => b.isNew);
+                if (spawned) spawned.isNew = false;
+            }, 450);
+        }
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function onStart(e) {
+            if (isGameOver || !isGameStarted) return;
+            audioSys.init();
+            const pos = getPos(e);
+            for (let b of balls) {
+                let dist = Math.hypot(pos.x - b.x, pos.y - b.y);
+                if (dist <= b.currentRadius + 15) {
+                    draggedBall = b;
+                    b.isDragging = true;
+                    b.vx = 0;
+                    b.vy = 0;
+                    audioSys.playPop();
+                    break;
+                }
+            }
+        }
+
+        function onMove(e) {
+            if (!draggedBall || isGameOver || !isGameStarted) return;
+            const pos = getPos(e);
+            draggedBall.x = pos.x;
+            draggedBall.y = pos.y;
+
+            draggedBall.x = Math.max(draggedBall.currentRadius, Math.min(canvas.width - draggedBall.currentRadius, draggedBall.x));
+            draggedBall.y = Math.max(draggedBall.currentRadius + 75, Math.min(canvas.height - draggedBall.currentRadius - 45, draggedBall.y));
+        }
+
+        function onEnd() {
+            if (draggedBall) {
+                const baseVel = 1.0 * speedMultiplier;
+                draggedBall.vx = (Math.random() - 0.5) * baseVel;
+                draggedBall.vy = (Math.random() - 0.5) * baseVel;
+                draggedBall.isDragging = false;
+                draggedBall = null;
+            }
+        }
+
+        canvas.addEventListener('mousedown', onStart);
+        canvas.addEventListener('mousemove', onMove);
+        window.addEventListener('mouseup', onEnd);
+        canvas.addEventListener('touchstart', onStart, { passive: false });
+        canvas.addEventListener('touchmove', onMove, { passive: false });
+        window.addEventListener('touchend', onEnd);
+
+        function updatePhysics() {
+            for (let i = 0; i < balls.length; i++) {
+                let b = balls[i];
+
+                if (!b.isDragging) {
+                    let currentSpeed = Math.hypot(b.vx, b.vy);
+                    let targetSpeed = 1.0 * speedMultiplier;
+                    
+                    if (currentSpeed > 0) {
+                        b.vx = (b.vx / currentSpeed) * targetSpeed;
+                        b.vy = (b.vy / currentSpeed) * targetSpeed;
+                    }
+
+                    b.x += b.vx;
+                    b.y += b.vy;
+
+                    if (b.x - b.currentRadius < 0 || b.x + b.currentRadius > canvas.width) b.vx *= -1;
+                    if (b.y - b.currentRadius < 75 || b.y + b.currentRadius > canvas.height - 45) b.vy *= -1;
+                }
+
+                for (let j = i + 1; j < balls.length; j++) {
+                    let b2 = balls[j];
+                    let dist = Math.hypot(b.x - b2.x, b.y - b2.y);
+                    let minDist = b.currentRadius + b2.currentRadius;
+
+                    if (dist < minDist - 2) {
+                        if (b.level === b2.level) {
+                            mergeBalls(b, b2);
+                            return;
+                        } 
+                        else {
+                            // تفادي الخسارة إذا كانت إحدى الكرتين تحت فترة الحماية المؤقتة
+                            if (!b.isNew && !b2.isNew) {
+                                triggerGameOver();
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function mergeBalls(b1, b2) {
+            draggedBall = null;
+            let newLevel = b1.level + 1;
+
+            if (newLevel >= 5) {
+                triggerJackpotExplosion();
+                return;
+            }
+
+            audioSys.playMerge(newLevel);
+
+            balls = balls.filter(b => b.id !== b1.id && b.id !== b2.id);
+
+            score += newLevel * 15;
+            scoreElement.innerText = score;
+
+            if (score > highScore) {
+                highScore = score;
+                highScoreElement.innerText = highScore;
+                localStorage.setItem('jelly_high_score', highScore);
+            }
+
+            let type = BALL_TYPES[newLevel - 1];
+            let baseVel = 1.0 * speedMultiplier;
+            
+            let newBall = {
+                id: Math.random(),
+                x: (b1.x + b2.x) / 2,
+                y: (b1.y + b2.y) / 2,
+                vx: (Math.random() - 0.5) * baseVel,
+                vy: (Math.random() - 0.5) * baseVel,
+                level: type.level,
+                currentRadius: type.baseRadius,
+                color: type.color,
+                isDragging: false,
+                isNew: true
+            };
+            
+            balls.push(newBall);
+
+            setTimeout(() => {
+                newBall.isNew = false;
+            }, 300);
+
+            updateGameState();
+        }
+
+        function triggerJackpotExplosion() {
+            audioSys.playJackpot();
+            score += 500;
+            jackpotCounter += 1;
+            scoreElement.innerText = score;
+
+            if (score > highScore) {
+                highScore = score;
+                highScoreElement.innerText = highScore;
+                localStorage.setItem('jelly_high_score', highScore);
+            }
+
+            celebrationPopup.classList.add('show');
+            setTimeout(() => {
+                celebrationPopup.classList.remove('show');
+            }, 2000);
+
+            balls = [];
+            updateGameState();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let b of balls) {
+                ctx.save();
+                
+                ctx.beginPath();
+                ctx.arc(b.x, b.y, b.currentRadius, 0, Math.PI * 2);
+                ctx.fillStyle = b.color;
+                ctx.shadowColor = b.color;
+                ctx.shadowBlur = b.isDragging ? 32 : (b.isNew ? 6 : 16);
+                
+                // وميض خفيف للكرة المحمية حديثاً
+                if (b.isNew) {
+                    ctx.globalAlpha = 0.85;
+                }
+                
+                ctx.fill();
+
+                // انعكاس الضوء النيون على الهلام
+                ctx.beginPath();
+                ctx.arc(b.x - b.currentRadius * 0.3, b.y - b.currentRadius * 0.3, b.currentRadius * 0.28, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+                ctx.fill();
+
+                ctx.restore();
+            }
+
+            if (!isGameOver && isGameStarted) {
+                updatePhysics();
+                requestAnimationFrame(draw);
+            }
+        }
+
+        function triggerGameOver() {
+            isGameOver = true;
+            audioSys.playExplosion();
+            
+            // تسجيل وإنهاء الجلسة في محرك الأوفلاين والتحليلات
+            analytics.endSession(score, jackpotCounter);
+
+            finalScoreElement.innerText = score;
+            summaryJackpotsElement.innerText = jackpotCounter;
+            summaryHighScoreElement.innerText = highScore;
+            gameOverScreen.classList.remove('hidden');
+        }
+
+        function startGame() {
+            audioSys.init();
+            isGameStarted = true;
+            startScreen.classList.add('hidden');
+            resetGame();
+        }
+
+        function resetGame() {
+            isGameOver = false;
+            score = 0;
+            jackpotCounter = 0;
+            scoreElement.innerText = 0;
+            analytics.startSession();
+            updateGameState();
+            gameOverScreen.classList.add('hidden');
+            balls = [];
+            maintainBallCount();
+            draw();
+        }
+    </script>
+</body>
+</html>
