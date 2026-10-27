@@ -40,18 +40,18 @@
         /* شريط الواجهة العلوي Modern Glassmorphism UI */
         #ui-overlay {
             position: absolute;
-            top: 12px;
-            left: 14px;
-            right: 14px;
+            top: 8px;
+            left: 10px;
+            right: 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 10px 16px;
+            padding: 8px 14px;
             background: rgba(15, 23, 42, 0.65);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 18px;
+            border-radius: 16px;
             z-index: 5;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
@@ -68,7 +68,7 @@
             letter-spacing: 0.5px;
         }
         .stat-value {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 800;
         }
         .controls-group {
@@ -80,14 +80,14 @@
             background: rgba(255, 255, 255, 0.08);
             border: 1px solid rgba(255, 255, 255, 0.15);
             color: #fff;
-            width: 38px;
-            height: 38px;
+            width: 36px;
+            height: 36px;
             border-radius: 12px;
             display: flex;
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 15px;
             transition: all 0.2s ease;
         }
         .icon-btn:active {
@@ -97,9 +97,9 @@
 
         /* مؤشر الاتصال بالشبكة (أونلاين / أوفلاين) */
         #net-status {
-            padding: 4px 10px;
+            padding: 4px 8px;
             border-radius: 20px;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: 700;
             display: flex;
             align-items: center;
@@ -128,16 +128,16 @@
         /* شريط تفاصيل المستوى */
         #level-bar {
             position: absolute;
-            top: 75px;
+            top: 60px;
             left: 50%;
             transform: translateX(-50%);
             display: flex;
-            gap: 15px;
+            gap: 12px;
             background: rgba(30, 27, 75, 0.6);
-            padding: 6px 16px;
-            border-radius: 20px;
+            padding: 4px 14px;
+            border-radius: 18px;
             border: 1px solid rgba(168, 85, 247, 0.3);
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 700;
             z-index: 4;
             pointer-events: none;
@@ -293,11 +293,11 @@
 
         .rule-hint-bottom {
             position: absolute;
-            bottom: 16px;
+            bottom: 40px;
             color: #a855f7;
-            font-size: 12px;
+            font-size: 11px;
             background: rgba(15, 23, 42, 0.7);
-            padding: 6px 16px;
+            padding: 5px 14px;
             border-radius: 20px;
             border: 1px solid rgba(168, 85, 247, 0.3);
             pointer-events: none;
@@ -464,10 +464,8 @@
                 const queue = JSON.parse(localStorage.getItem(this.storageKey) || '[]');
                 if (queue.length === 0) return;
 
-                // إرسال البيانات دون التأثير على استجابة اللعبة أو الشبكة (Background Dispatch)
                 setTimeout(() => {
-                    // يحاكي التوصيل بالسيرفر بنجاح وتحديث السجلات
-                    const remainingQueue = queue.filter(item => false); // تم معالجتها بالكامل
+                    const remainingQueue = queue.filter(item => false);
                     localStorage.setItem(this.storageKey, JSON.stringify(remainingQueue));
                     
                     const syncBanner = document.getElementById('sync-banner');
@@ -594,7 +592,7 @@
         const audioSys = new ASMRSoundSystem();
 
         /* ------------------------------------------------------------------
-           3. المحرك الفيزيائي وقواعد اللعبة (Game Engine Logic)
+           3. المحرك الفيزيائي وقواعد اللعبة (السرعة المتوازنة والنشطة)
         ------------------------------------------------------------------ */
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -619,17 +617,18 @@
         window.addEventListener('resize', resizeCanvas);
         resizeCanvas();
 
+        /* كرات أوسع مساحةً وأسهل دمجاً مع الحفاظ على الحيوية */
         const BALL_TYPES = [
-            { level: 1, baseRadius: 22, color: '#f43f5e' }, // أحمر
-            { level: 2, baseRadius: 33, color: '#3b82f6' }, // أزرق
-            { level: 3, baseRadius: 46, color: '#10b981' }, // أخضر
-            { level: 4, baseRadius: 60, color: '#f59e0b' }, // برتقالي
-            { level: 5, baseRadius: 78, color: '#a855f7' }  // بنفسجي ملكي
+            { level: 1, baseRadius: 19, color: '#f43f5e' }, // أحمر
+            { level: 2, baseRadius: 28, color: '#3b82f6' }, // أزرق
+            { level: 3, baseRadius: 40, color: '#10b981' }, // أخضر
+            { level: 4, baseRadius: 52, color: '#f59e0b' }, // برتقالي
+            { level: 5, baseRadius: 68, color: '#a855f7' }  // بنفسجي ملكي
         ];
 
         let score = 0;
         let gameLevel = 1;
-        let speedMultiplier = 1;
+        let speedMultiplier = 0.85; // سرعة نشطة وممتعة (تقليل بسيط ومناسب غير مبالغ فيه)
         let maxBallsAllowed = 4;
         let jackpotCounter = 0;
         let highScore = localStorage.getItem('jelly_high_score') || 0;
@@ -647,8 +646,8 @@
 
         function updateGameState() {
             gameLevel = Math.floor(score / 80) + 1;
-            speedMultiplier = 1 + (gameLevel - 1) * 0.11; // سرعة هادئة متزنة
-            maxBallsAllowed = Math.min(3 + gameLevel, 7); // حد أقصى 7 كرات لتفادي التكدس
+            speedMultiplier = 0.85 + (gameLevel - 1) * 0.08; 
+            maxBallsAllowed = Math.min(3 + gameLevel, 6);
 
             levelElement.innerText = gameLevel;
             ballCountElement.innerText = maxBallsAllowed;
@@ -668,16 +667,16 @@
             
             let x, y, overlap;
             let attempts = 0;
-            const baseVel = 1.0 * speedMultiplier;
+            const baseVel = 0.85 * speedMultiplier;
 
             do {
                 overlap = false;
                 x = type.baseRadius + Math.random() * (canvas.width - type.baseRadius * 2);
-                y = type.baseRadius + 90 + Math.random() * (canvas.height - type.baseRadius * 2 - 150);
+                y = type.baseRadius + 70 + Math.random() * (canvas.height - type.baseRadius * 2 - 120);
 
                 for (let b of balls) {
                     let dist = Math.hypot(x - b.x, y - b.y);
-                    if (dist < type.baseRadius + b.currentRadius + 25) {
+                    if (dist < type.baseRadius + b.currentRadius + 28) {
                         overlap = true;
                         break;
                     }
@@ -700,14 +699,14 @@
                 currentRadius: type.baseRadius,
                 color: type.color,
                 isDragging: false,
-                isNew: true // ميزة الحماية المؤقتة لمنع الخسارة العشوائية
+                isNew: true
             });
 
-            // تعزيز ميزة الحماية المؤقتة (فترة أمان 450ms)
+            // حماية مؤقتة متوازنة (600ms)
             setTimeout(() => {
                 let spawned = balls.find(b => b.isNew);
                 if (spawned) spawned.isNew = false;
-            }, 450);
+            }, 600);
         }
 
         function getPos(e) {
@@ -741,12 +740,12 @@
             draggedBall.y = pos.y;
 
             draggedBall.x = Math.max(draggedBall.currentRadius, Math.min(canvas.width - draggedBall.currentRadius, draggedBall.x));
-            draggedBall.y = Math.max(draggedBall.currentRadius + 75, Math.min(canvas.height - draggedBall.currentRadius - 45, draggedBall.y));
+            draggedBall.y = Math.max(draggedBall.currentRadius + 60, Math.min(canvas.height - draggedBall.currentRadius - 35, draggedBall.y));
         }
 
         function onEnd() {
             if (draggedBall) {
-                const baseVel = 1.0 * speedMultiplier;
+                const baseVel = 0.85 * speedMultiplier;
                 draggedBall.vx = (Math.random() - 0.5) * baseVel;
                 draggedBall.vy = (Math.random() - 0.5) * baseVel;
                 draggedBall.isDragging = false;
@@ -767,7 +766,7 @@
 
                 if (!b.isDragging) {
                     let currentSpeed = Math.hypot(b.vx, b.vy);
-                    let targetSpeed = 1.0 * speedMultiplier;
+                    let targetSpeed = 0.85 * speedMultiplier;
                     
                     if (currentSpeed > 0) {
                         b.vx = (b.vx / currentSpeed) * targetSpeed;
@@ -778,7 +777,7 @@
                     b.y += b.vy;
 
                     if (b.x - b.currentRadius < 0 || b.x + b.currentRadius > canvas.width) b.vx *= -1;
-                    if (b.y - b.currentRadius < 75 || b.y + b.currentRadius > canvas.height - 45) b.vy *= -1;
+                    if (b.y - b.currentRadius < 60 || b.y + b.currentRadius > canvas.height - 35) b.vy *= -1;
                 }
 
                 for (let j = i + 1; j < balls.length; j++) {
@@ -786,13 +785,13 @@
                     let dist = Math.hypot(b.x - b2.x, b.y - b2.y);
                     let minDist = b.currentRadius + b2.currentRadius;
 
-                    if (dist < minDist - 2) {
+                    // مسافة دمج مرنة وسهلة للوصول للبنفسجية بسرعة
+                    if (dist < minDist + 3) {
                         if (b.level === b2.level) {
                             mergeBalls(b, b2);
                             return;
                         } 
                         else {
-                            // تفادي الخسارة إذا كانت إحدى الكرتين تحت فترة الحماية المؤقتة
                             if (!b.isNew && !b2.isNew) {
                                 triggerGameOver();
                                 return;
@@ -826,7 +825,7 @@
             }
 
             let type = BALL_TYPES[newLevel - 1];
-            let baseVel = 1.0 * speedMultiplier;
+            let baseVel = 0.85 * speedMultiplier;
             
             let newBall = {
                 id: Math.random(),
@@ -845,7 +844,7 @@
 
             setTimeout(() => {
                 newBall.isNew = false;
-            }, 300);
+            }, 350);
 
             updateGameState();
         }
@@ -883,14 +882,12 @@
                 ctx.shadowColor = b.color;
                 ctx.shadowBlur = b.isDragging ? 32 : (b.isNew ? 6 : 16);
                 
-                // وميض خفيف للكرة المحمية حديثاً
                 if (b.isNew) {
                     ctx.globalAlpha = 0.85;
                 }
                 
                 ctx.fill();
 
-                // انعكاس الضوء النيون على الهلام
                 ctx.beginPath();
                 ctx.arc(b.x - b.currentRadius * 0.3, b.y - b.currentRadius * 0.3, b.currentRadius * 0.28, 0, Math.PI * 2);
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
@@ -909,7 +906,6 @@
             isGameOver = true;
             audioSys.playExplosion();
             
-            // تسجيل وإنهاء الجلسة في محرك الأوفلاين والتحليلات
             analytics.endSession(score, jackpotCounter);
 
             finalScoreElement.innerText = score;
@@ -939,7 +935,7 @@
         }
     </script>
     <!-- اسمك كمطور اللعبة -->
-    <div style="position: absolute; bottom: 15px; width: 100%; text-align: center; font-size: 14px; color: #8b949e; font-family: Tahoma, sans-serif; z-index: 999;">
+    <div style="position: absolute; bottom: 10px; width: 100%; text-align: center; font-size: 13px; color: #8b949e; font-family: Tahoma, sans-serif; z-index: 999; pointer-events: none;">
         Developed by Ahmed Bakir &copy; 2026
     </div>
 </body>
